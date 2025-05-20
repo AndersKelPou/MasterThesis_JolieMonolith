@@ -1,6 +1,9 @@
 from .Modules.MarketDataGatewayInterfaceModule import MarketDataGatewayInterface
 from .Modules.PricerEngineInterfaceModule import PricerEngineInterface
 from .Modules.MarketSimInterface import MarketSimulationInterface
+from .Modules.ExternalBrokerSims.NordeaInterfaceModule import NordeaInterface
+from .Modules.ExternalBrokerSims.NASDAQInterfaceModule import NASDAQInterface
+from .Modules.ExternalBrokerSims.JPMorganInterfaceModule import JPMorganInterface
 
 include "console.iol"
 
@@ -17,10 +20,20 @@ service hedgeservice {
         protocol: http { format = "json" }
         interfaces: PricerEngineInterface
     }
-    outputPort MarketSimulationPort {
+    outputPort NordeaPort {
         location: "socket://localhost:8008"
         protocol: http { format = "json" }
-        interfaces: MarketSimulationInterface
+        interfaces: NordeaInterface
+    }
+    outputPort NASDAQPort {
+        location: "socket://localhost:8009"
+        protocol: http { format = "json" }
+        interfaces: NASDAQInterface
+    }
+    outputPort JPMorganPort {
+        location: "socket://localhost:8010"
+        protocol: http { format = "json" }
+        interfaces: JPMorganInterface
     }
 
     init {
@@ -30,11 +43,60 @@ service hedgeservice {
 
     main {
         [ publishInitialPrice(request)(response){
-            getInitialPrices@MarketSimulationPort(request)(res)
-            for( i=0, i<#res.Stocks, i++) {
-                response.Stocks[i].InstrumentId = res.Stocks[i].InstrumentId
-                response.Stocks[i].Price = res.Stocks[i].Price
+            count = 0
+
+            getInitialPrices@NordeaPort()(res1)
+            for( i=0, i<#res1.Stocks, i++) {
+                for(item in request.InstrumentIds) {
+                    if(res1.Stocks[i].InstrumentId == item) {
+                        response.Stocks[count].InstrumentId = res1.Stocks[i].InstrumentId
+                        response.Stocks[count].Price = res1.Stocks[i].Price
+                        count++
+                    }
+                }
             }
+            getInitialPrices@NASDAQPort()(res2)
+            for( i=0, i<#res2.Stocks, i++) {
+                for(item in request.InstrumentIds) {
+                    if(res2.Stocks[i].InstrumentId == item) {
+                        duplicate = false
+                        for( j=0, j<#response.Stocks, j++) {
+                            if(response.Stocks[j].InstrumentId == res2.Stocks[i].InstrumentId && response.Stocks[j].Price > res2.Stocks[i].Price) {
+                                response.Stocks[j].Price = res2.Stocks[i].Price
+                                duplicate = true
+                            }
+                        }
+                        if(!duplicate) {
+                            response.Stocks[count].InstrumentId = res2.Stocks[i].InstrumentId
+                            response.Stocks[count].Price = res2.Stocks[i].Price
+                            count++
+                        }
+                    }
+                }
+            }
+            getInitialPrices@JPMorganPort()(res3)
+            for( i=0, i<#res3.Stocks, i++) {
+                for(item in request.InstrumentIds) {
+                    if(res3.Stocks[i].InstrumentId == item) {
+                        duplicate = false
+                        for( j=0, j<#response.Stocks, j++) {
+                            if(response.Stocks[j].InstrumentId == res3.Stocks[i].InstrumentId && response.Stocks[j].Price > res3.Stocks[i].Price) {
+                                response.Stocks[j].Price = res3.Stocks[i].Price
+                                duplicate = true
+                            }
+                        }
+                        if(!duplicate) {
+                            response.Stocks[count].InstrumentId = res3.Stocks[i].InstrumentId
+                            response.Stocks[count].Price = res3.Stocks[i].Price
+                            count++
+                        }
+                    }
+                }
+            }
+        }]
+
+        [ marketPriceUpdated(request)() {
+            println@Console("Got new price for " + request.InstrumentId)()
         }]
 
         

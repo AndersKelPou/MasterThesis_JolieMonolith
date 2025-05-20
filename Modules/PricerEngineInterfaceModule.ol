@@ -1,16 +1,17 @@
 from .Types import *
 
-type partialInitialPriceResponse: void {
+type Stock: void {
     InstrumentId: string
     Price: double
 }
+
 type initialPriceResponse: void {
-    Stocks*: partialInitialPriceResponse
+    Stocks*: Stock
 }
 
 interface PricerEngineInterface {
     RequestResponse:
-        updatePrice(undefined)(undefined),
+        updatePrice(Stock)(void),
         publishInitialPrice(void)(initialPriceResponse),
         shutdown( void )( void )   
 }

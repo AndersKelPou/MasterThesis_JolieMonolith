@@ -1,19 +1,21 @@
 from .Types import *
 
-type initialPriceRequest: void {
-    InstrumentIds*: string
-}
-type partialInitialPriceResponse: void {
+type Stock: void {
     InstrumentId: string
     Price: double
 }
+
+type initialPriceRequest: void {
+    InstrumentIds*: string
+}
+
 type initialPriceResponse: void {
-    Stocks*: partialInitialPriceResponse
+    Stocks*: Stock
 }
 
 interface MarketDataGatewayInterface {
     RequestResponse:
         publishInitialPrice( initialPriceRequest )( initialPriceResponse ),
-        handleMarketPriceUpdate(undefined)(undefined),
+        marketPriceUpdated( Stock )(undefined),
         shutdown( void )( void )
 }

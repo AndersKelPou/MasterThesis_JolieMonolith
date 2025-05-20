@@ -11,12 +11,13 @@ type loginResponse: void {
     Holdings*: HoldingData
 }
 
-type partialStockOptions: void {
+type Stock: void {
     InstrumentId: string
     Price: double
 }
+
 type stockOptions: void {
-    Stocks*: partialStockOptions
+    Stocks*: Stock
 }
 
 interface ClientAPIInterface {
