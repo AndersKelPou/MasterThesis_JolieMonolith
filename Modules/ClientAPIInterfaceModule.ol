@@ -21,6 +21,8 @@ type stockOptions: void {
 }
 
 interface ClientAPIInterface {
+    OneWay:
+        handlePriceUpdate( Stock )
     RequestResponse:
         handleOrder(undefined)(undefined),
         checkLogin(loginRequest)(loginResponse),

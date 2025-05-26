@@ -2,6 +2,7 @@ from .Modules.ClientAPIInterfaceModule import ClientAPIInterface
 from .Modules.DBHandlerInterfaceModule import DBHandlerInterface
 from .Modules.RiskCalculatorInterfaceModule import RiskCalculatorInterface
 from .Modules.PricerEngineInterfaceModule import PricerEngineInterface
+from .Modules.ClientInstanceInterfaceModule import ClientInstanceInterface
 
 include "console.iol"
 
@@ -28,6 +29,11 @@ service clientapi {
         protocol: http { format = "json" }
         interfaces: RiskCalculatorInterface
     }
+    outputPort clientInstancePort {
+        location: "socket://localhost:8011"
+        protocol: http { format = "json" }
+        interfaces: ClientInstanceInterface
+    }
 
     init {
         println@Console("ClientAPI Running")()
@@ -44,6 +50,11 @@ service clientapi {
             publishInitialPrice@pricerEnginePort()(res)
             response -> res
         }]
+
+        [ handlePriceUpdate(request)] {
+            install (IOException => println@Console("No one is listening")());
+            handlePriceUpdate@clientInstancePort(request)
+        }
         
         [ shutdown()() ]{
             exit

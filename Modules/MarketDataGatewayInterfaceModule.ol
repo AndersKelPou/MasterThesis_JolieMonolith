@@ -14,8 +14,9 @@ type initialPriceResponse: void {
 }
 
 interface MarketDataGatewayInterface {
+    OneWay:
+        marketPriceUpdated( Stock )
     RequestResponse:
         publishInitialPrice( initialPriceRequest )( initialPriceResponse ),
-        marketPriceUpdated( Stock )(undefined),
         shutdown( void )( void )
 }

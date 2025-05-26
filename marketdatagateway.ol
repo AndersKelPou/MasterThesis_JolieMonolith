@@ -95,9 +95,9 @@ service hedgeservice {
             }
         }]
 
-        [ marketPriceUpdated(request)() {
-            println@Console("Got new price for " + request.InstrumentId)()
-        }]
+        [ marketPriceUpdated(request)] {
+            updatePrice@pricerEnginePort(request)
+        }
 
         
         [ shutdown()() ]{

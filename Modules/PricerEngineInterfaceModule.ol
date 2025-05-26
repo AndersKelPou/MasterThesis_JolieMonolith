@@ -10,8 +10,9 @@ type initialPriceResponse: void {
 }
 
 interface PricerEngineInterface {
+    OneWay:
+        updatePrice(Stock)
     RequestResponse:
-        updatePrice(Stock)(void),
         publishInitialPrice(void)(initialPriceResponse),
         shutdown( void )( void )   
 }

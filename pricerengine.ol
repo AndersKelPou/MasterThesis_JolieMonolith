@@ -33,13 +33,13 @@ service pricerengine {
     }
 
     main {
-        [ updatePrice(request)() {
-            for(item in config) {
+        [ updatePrice(request)] {
+            for(item in config.TradingOptions.InstrumentIds) {
                 if(request.InstrumentId == item) {
-                    println@Console("SEND TO CLIENTAPI")()
+                    handlePriceUpdate@clientAPIPort(request)
                 }
             }
-        }]
+        }
 
         [ publishInitialPrice()(response) {
             publishInitialPrice@MarketDataGatewayPort(config.TradingOptions) ( res );
