@@ -3,7 +3,7 @@ from .Modules.DBHandlerInterfaceModule import DBHandlerInterface
 include "console.iol"
 include "database.iol"
 include "string_utils.iol"
-
+include "file.iol"
 
 service Dbhandler {
     execution: concurrent
@@ -16,6 +16,14 @@ service Dbhandler {
 
     init
     {
+        file.filename = "./Modules/appsettings/dbhandlersettings.json";
+        file.format = "json";
+        readFile@File( file )( config )
+
+        file.filename = "./Modules/appsettings/pricerenginesettings.json";
+        file.format = "json";
+        readFile@File( file )( instrumentconfig )
+
         with (connectionInfo) {
             .username = "sa";
             .password = "";
@@ -29,6 +37,17 @@ service Dbhandler {
         // create table if it does not exist
         getRandomUUID@StringUtils()(uuid1)
         getRandomUUID@StringUtils()(uuid2)
+
+        getRandomUUID@StringUtils()(danskebankid)
+        getRandomUUID@StringUtils()(nordeaid)
+        getRandomUUID@StringUtils()(jpmorganid)
+        getRandomUUID@StringUtils()(nasdaqid)
+
+        internalTier = "Internal"
+        internalBalance = 1000000.0
+        internalHoldingSize = 100
+        initialTarget = 3
+
         scope (createClientTable) {
             install (SQLException => println@Console("Client table already exists")());
             update@Database(
@@ -51,7 +70,39 @@ service Dbhandler {
                     .clientid = uuid2,
                     .name = "Mathias",
                     .balance = 1000.0,
-                    .tier = "Internal"
+                    .tier = "Premium"
+                }
+            )(ret)
+            update@Database(
+                "insert into Clients (clientid, name, balance, tier) values (:clientid, :name, :balance, :tier)" {
+                    .clientid = danskebankid,
+                    .name = "Danske_Bank",
+                    .balance = internalBalance,
+                    .tier = internalTier
+                }
+            )(ret)
+            update@Database(
+                "insert into Clients (clientid, name, balance, tier) values (:clientid, :name, :balance, :tier)" {
+                    .clientid = nordeaid,
+                    .name = "Nordea",
+                    .balance = internalBalance,
+                    .tier = internalTier
+                }
+            )(ret)
+            update@Database(
+                "insert into Clients (clientid, name, balance, tier) values (:clientid, :name, :balance, :tier)" {
+                    .clientid = jpmorganid,
+                    .name = "JPMorgan",
+                    .balance = internalBalance,
+                    .tier = internalTier
+                }
+            )(ret)
+            update@Database(
+                "insert into Clients (clientid, name, balance, tier) values (:clientid, :name, :balance, :tier)" {
+                    .clientid = nasdaqid,
+                    .name = "NASDAQ",
+                    .balance = internalBalance,
+                    .tier = internalTier
                 }
             )(ret)
         }
@@ -86,6 +137,33 @@ service Dbhandler {
                 "size int not null, " +
                 "primary key(clientid, instrumentid))"
             )(ret)
+            for(item in config.BrokerStocks.JPMorgan) {
+                update@Database(
+                    "insert into Holdings (clientid, instrumentid, size) values (:clientid, :instrumentid, :size)" {
+                        .clientid = jpmorganid,
+                        .instrumentid = item,
+                        .size = internalHoldingSize
+                    }
+                )(ret)
+            }
+            for(item in config.BrokerStocks.NASDAQ) {
+                update@Database(
+                    "insert into Holdings (clientid, instrumentid, size) values (:clientid, :instrumentid, :size)" {
+                        .clientid = nasdaqid,
+                        .instrumentid = item,
+                        .size = internalHoldingSize
+                    }
+                )(ret)
+            }
+            for(item in config.BrokerStocks.Nordea) {
+                update@Database(
+                    "insert into Holdings (clientid, instrumentid, size) values (:clientid, :instrumentid, :size)" {
+                        .clientid = nordeaid,
+                        .instrumentid = item,
+                        .size = internalHoldingSize
+                    }
+                )(ret)
+            }
         }
         scope (createTransactionsTable) {
             install (SQLException => println@Console("Transactions table already exists")());
@@ -100,6 +178,23 @@ service Dbhandler {
                 "succeeded boolean not null, " +
                 "primary key(transactionid))"
             )(ret)
+        }
+        scope (createTargetPositionsTable) {
+            install (SQLException => println@Console("TargetPositions table already exists")());
+            update@Database(
+                "create table TargetPositions(instrumentid varchar(255) not null, " +
+                "target int, " +
+                "primary key(instrumentId))"
+            )(ret)
+
+            for(item in instrumentconfig.TradingOptions.InstrumentIds) {
+                update@Database(
+                    "insert into TargetPositions (instrumentid, target) values (:instrumentid, :target)" {
+                        .instrumentid = item,
+                        .target = initialTarget
+                    }
+                )(ret)
+            }
         }
     }
 
@@ -143,8 +238,8 @@ service Dbhandler {
                 response.Client.Tier = sqlResponse2.row.TIER
 
                 query@Database(
-                    "select * from Holdings where clientId=:clientId" {
-                        .clientId = sqlResponse.row.CLIENTID
+                    "select * from Holdings where clientid=:clientid" {
+                        .clientid = sqlResponse.row.CLIENTID
                     }
                 )(sqlResponse3);
                 if(#sqlResponse3.row < 1) {
@@ -158,8 +253,67 @@ service Dbhandler {
                 }
             }
         }]
-        
-        
+
+        [getClientTier(request)(response){
+            query@Database(
+                "select tier from Clients where clientId=:clientId" {
+                    .clientId = request.ClientId
+                }
+            )(sqlResponse)
+            if(#sqlResponse.row < 1) {
+                response.ClientTier = void
+            }else {
+                response.ClientTier = sqlResponse.row.TIER
+            }
+        }]
+
+        [getClientHoldings(request)(response){
+            query@Database(
+                "select * from Holdings where clientid=:clientid" {
+                    .clientid = request.ClientId
+                }
+            )(sqlResponse)
+            if(#sqlResponse.row < 1) {
+                response.Holdings = void
+            }else {
+                for( i=0, i < #sqlResponse.row, i++ ) {
+                    response.Holdings[i].ClientId = sqlResponse.row[i].CLIENTID
+                    response.Holdings[i].InstrumentId = sqlResponse.row[i].INSTRUMENTID
+                    response.Holdings[i].Size = sqlResponse.row[i].SIZE
+                }
+            }
+        }]
+
+        [getDanskeBankHoldings()(response){
+            query@Database(
+                "select * from Holdings where clientId=:clientId" {
+                    .clientId = danskebankid
+                }
+            )(sqlResponse)
+            if(#sqlResponse.row < 1) {
+                response.Holdings = void
+            }else {
+                for( i=0, i < #sqlResponse.row, i++ ) {
+                    response.Holdings[i].ClientId = sqlResponse.row[i].CLIENTID
+                    response.Holdings[i].InstrumentId = sqlResponse.row[i].INSTRUMENTID
+                    response.Holdings[i].Size = sqlResponse.row[i].SIZE
+                }
+            }
+        }]
+
+        [getInstrumentTarget(request)(response){
+            query@Database(
+                "select * from TargetPositions where instrumentId=:instrumentId" {
+                    .instrumentId = request.InstrumentId
+                }
+            )(sqlResponse)
+            if(#sqlResponse.row < 1) {
+                response.Target = 0
+            }else {
+                response.Target = sqlResponse.row.TARGET
+            }
+        }]
+
         [ shutdown()() ]{
             exit
         }

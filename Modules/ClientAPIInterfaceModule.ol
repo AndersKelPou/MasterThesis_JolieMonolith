@@ -1,5 +1,13 @@
 from .Types import *
 
+type handleOrderRequest: void {
+    ClientId: string
+    InstrumentId: string
+    Price: double
+    Size: int
+    Side: string(enum(["Right", "Left"]))
+}
+
 type loginRequest: void {
     username: string
     password: string
@@ -16,16 +24,26 @@ type Stock: void {
     Price: double
 }
 
+type TieredStock: void {
+    InstrumentId: string
+    BidPrice: double
+    AskPrice: double
+}
+
 type stockOptions: void {
-    Stocks*: Stock
+    Stocks*: TieredStock
+}
+
+type stockOptionRequest: void {
+    ClientId: string
 }
 
 interface ClientAPIInterface {
     OneWay:
         handlePriceUpdate( Stock )
     RequestResponse:
-        handleOrder(undefined)(undefined),
+        handleOrder(handleOrderRequest)(undefined),
         checkLogin(loginRequest)(loginResponse),
-        getStockOptions( void )(stockOptions),
+        getStockOptions(stockOptionRequest)(stockOptions),
         shutdown( void )( void )
 }

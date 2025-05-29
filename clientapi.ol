@@ -5,6 +5,7 @@ from .Modules.PricerEngineInterfaceModule import PricerEngineInterface
 from .Modules.ClientInstanceInterfaceModule import ClientInstanceInterface
 
 include "console.iol"
+include "file.iol"
 
 service clientapi {
     execution: concurrent
@@ -36,24 +37,67 @@ service clientapi {
     }
 
     init {
+        file.filename = "./Modules/appsettings/clientapisettings.json";
+        file.format = "json";
+        readFile@File( file )( config )
         println@Console("ClientAPI Running")()
     }
 
     main {
+
+        [ handleOrder(request)(response) {
+            tierRequest.ClientId = request.ClientId
+            getClientTier@DBHandlerPort(tierRequest)(tierResponse)
+            spreadPercent = 0
+            for( item in config.SpreadPercentages) {
+                if(item.Name == tierResponse.ClientTier) {
+                    spreadPercent = item.Spread
+                }
+            }
+
+            orderRequest.ClientId = request.ClientId
+            orderRequest.InstrumentId = request.InstrumentId
+            orderRequest.Size = request.Size
+            orderRequest.Side = request.Side
+
+            if(request.Side == "Right") {
+                orderRequest.Price = request.Price * (1.0 / (1.0 + spreadPercent))
+                orderRequest.SpreadPrice = request.Price - (request.Price * (1.0 / (1.0 + spreadPercent)))
+            }else {
+                orderRequest.Price = request.Price * (1.0 / (1.0 - spreadPercent))
+                orderRequest.SpreadPrice = (request.Price * (1.0 / (1.0 + spreadPercent))) - request.Price
+            }
+            response -> orderRequest
+        }]
         
         [ checkLogin(request)(response) {
             checkLogin@DBHandlerPort(request)(res)
             response -> res
         }]
 
-        [ getStockOptions()(response){
+        [ getStockOptions(request)(response){
             publishInitialPrice@pricerEnginePort()(res)
-            response -> res
+            getClientTier@DBHandlerPort(request)(tierResponse)
+            for( i=0, i<#res.Stocks, i++ ) {
+                response.Stocks[i].InstrumentId = res.Stocks[i].InstrumentId
+                for( item in config.SpreadPercentages) {
+                    if(item.Name == tierResponse.ClientTier) {
+                        response.Stocks[i].AskPrice = res.Stocks[i].Price + (res.Stocks[i].Price * item.Spread)
+                        response.Stocks[i].BidPrice = res.Stocks[i].Price - (res.Stocks[i].Price * item.Spread)
+                    }
+                }
+            }
         }]
 
         [ handlePriceUpdate(request)] {
             install (IOException => println@Console("No one is listening")());
-            handlePriceUpdate@clientInstancePort(request)
+            clientRequest.InstrumentId = request.InstrumentId
+            for( i=0, i<#config.SpreadPercentages, i++ ) {
+                clientRequest.TieredPrice[i].ClientTier = config.SpreadPercentages[i].Name
+                clientRequest.TieredPrice[i].AskPrice = request.Price + (request.Price * config.SpreadPercentages[i].Spread)
+                clientRequest.TieredPrice[i].BidPrice = request.Price - (request.Price * config.SpreadPercentages[i].Spread)
+            }
+            handlePriceUpdate@clientInstancePort(clientRequest)
         }
         
         [ shutdown()() ]{

@@ -1,7 +1,6 @@
 from .Modules.PricerEngineInterfaceModule import PricerEngineInterface
 from .Modules.ClientAPIInterfaceModule import ClientAPIInterface
 from .Modules.MarketDataGatewayInterfaceModule import MarketDataGatewayInterface
-//from .Modules.appsettings import *
 
 include "console.iol"
 include "file.iol"
@@ -26,7 +25,7 @@ service pricerengine {
     }
 
     init {
-        file.filename = "./Modules/appsettings.json";
+        file.filename = "./Modules/appsettings/pricerenginesettings.json";
         file.format = "json";
         readFile@File( file )( config )
         println@Console("Pricer Engine Running")()

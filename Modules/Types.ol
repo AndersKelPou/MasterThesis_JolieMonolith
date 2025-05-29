@@ -18,7 +18,7 @@ type TransactionData: void {
 
 type HoldingData: void {
     ClientId?: string
-    IntrumentId?: string
+    InstrumentId?: string
     Size?: int
 }
 

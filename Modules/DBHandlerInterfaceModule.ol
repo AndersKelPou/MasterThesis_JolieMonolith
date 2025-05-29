@@ -27,12 +27,36 @@ type loginResponse: void {
     Holdings[0,*]: HoldingData
 }
 
+type clientRequest: void {
+    ClientId: string
+}
+
+type clientTierResponse: void {
+    ClientTier: Tier
+}
+
+type holdingsResponse: void {
+    Holdings[0,*]: HoldingData
+}
+
+type InstrumentTargetRequest: void {
+    InstrumentId: string
+}
+
+type InstrumentTargetResponse: void {
+    Target: int
+}
+
 interface DBHandlerInterface {
     RequestResponse:
         addClient( AddClientRequest )( void ),
         addClientCustomer( AddClientCustomerRequest )( void ),
         getClientId( getClientIdRequest )( undefined ),
         getAllClients( void )( undefined ),
+        getClientTier( clientRequest )( clientTierResponse ),
         checkLogin( loginRequest )( loginResponse ),
+        getClientHoldings( clientRequest )( holdingsResponse ),
+        getDanskeBankHoldings( void )( holdingsResponse ),
+        getInstrumentTarget( InstrumentTargetRequest )( InstrumentTargetResponse ),
         shutdown( void )( void )
 }

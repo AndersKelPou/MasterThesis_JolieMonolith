@@ -1,0 +1,7 @@
+{
+    "BrokerStocks": {
+        "JPMorgan": [ "DIS", "GME", "NVDA" ],
+        "NASDAQ": [ "NOVO-B", "AAPL", "PFE" ],
+        "Nordea": [ "TSLA" , "META", "INTC" ]
+    }
+}

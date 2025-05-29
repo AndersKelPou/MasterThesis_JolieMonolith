@@ -1,0 +1,8 @@
+{
+    "SpreadPercentages": [
+    {"Name": "External", "Spread": 0.005},
+    {"Name": "Internal", "Spread": 0.001},
+    {"Name": "Regular", "Spread": 0.002},
+    {"Name": "Premium", "Spread": 0.0005}
+    ]
+}

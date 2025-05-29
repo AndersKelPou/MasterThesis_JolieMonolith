@@ -1,9 +1,17 @@
-type Stock: void {
+from .Types import *
+
+type TieredStock: void {
+    ClientTier: Tier
+    BidPrice: double
+    AskPrice: double
+}
+
+type PriceUpdateRequest: void {
     InstrumentId: string
-    Price: double
+    TieredPrice*: TieredStock
 }
 
 interface ClientInstanceInterface {
     OneWay:
-        handlePriceUpdate(Stock)
+        handlePriceUpdate(PriceUpdateRequest)
 }

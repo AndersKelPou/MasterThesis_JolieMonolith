@@ -1,0 +1,5 @@
+{
+  "TradingOptions": {
+    "InstrumentIds": [ "GME", "NVDA", "NOVO-B", "AAPL", "TSLA" ]
+  }
+}
