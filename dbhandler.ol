@@ -215,6 +215,22 @@ service Dbhandler {
             response.values -> sqlResponse.row
         } ]
 
+        [ getClientFromId( request )( response ) {
+            query@Database(
+                "select * from Clients where clientId=:clientId" {
+                    .clientId = request.ClientId
+                }
+            )(sqlResponse);
+            if(#sqlResponse.row < 1) {
+                response.Client = void
+            }else {
+                response.Client.ClientId = request.ClientId
+                response.Client.Name = sqlResponse.row.NAME
+                response.Client.Balance = sqlResponse.row.BALANCE
+                response.Client.Tier = sqlResponse.row.TIER
+            }
+        }]
+
         [ checkLogin( request )( response ) {
             query@Database(
                 "select * from Customers where username=:username and password=:password" {

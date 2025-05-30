@@ -9,8 +9,13 @@ type checkOrderRequest: void {
     SpreadPrice: double
 }
 
+type checkOrderResponse: void {
+    Status: string
+    ErrorMessage: string
+}
+
 interface RiskCalculatorInterface {
     RequestResponse:
-        checkOrder(checkOrderRequest)(undefined),
+        checkOrder(checkOrderRequest)(checkOrderResponse),
         shutdown( void )( void )
 }

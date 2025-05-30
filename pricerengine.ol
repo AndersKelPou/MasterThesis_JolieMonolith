@@ -33,8 +33,9 @@ service pricerengine {
 
     main {
         [ updatePrice(request)] {
-            for(item in config.TradingOptions.InstrumentIds) {
-                if(request.InstrumentId == item) {
+            for( i=0, i<#global.Prices, i++) {
+                if(request.InstrumentId = global.Prices[i].InstrumentId) {
+                    global.Prices[i].Price = request.Price
                     handlePriceUpdate@clientAPIPort(request)
                 }
             }
@@ -42,7 +43,20 @@ service pricerengine {
 
         [ publishInitialPrice()(response) {
             publishInitialPrice@MarketDataGatewayPort(config.TradingOptions) ( res );
+            for( i=0, i<#res.Stocks, i++) {
+                global.Prices[i].InstrumentId = res.Stocks[i].InstrumentId
+                global.Prices[i].Price = res.Stocks[i].Price
+            }
             response -> res
+        }]
+
+        [ publishPrice(request)(response) {
+            response.Price = 0
+            for(item in global.Prices) {
+                if(item.InstrumentId == request.InstrumentId) {
+                    response.Price = item.Price
+                }
+            }
         }]
 
         [ shutdown()() ]{

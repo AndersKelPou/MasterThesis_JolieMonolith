@@ -8,6 +8,12 @@ type handleOrderRequest: void {
     Side: string(enum(["Right", "Left"]))
 }
 
+type handleOrderResponse: void {
+    Status: string
+    ErrorMessage: string
+    Holdings[0,*]: HoldingData
+}
+
 type loginRequest: void {
     username: string
     password: string

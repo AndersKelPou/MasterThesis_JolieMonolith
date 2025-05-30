@@ -67,7 +67,14 @@ service clientapi {
                 orderRequest.Price = request.Price * (1.0 / (1.0 - spreadPercent))
                 orderRequest.SpreadPrice = (request.Price * (1.0 / (1.0 + spreadPercent))) - request.Price
             }
-            response -> orderRequest
+            checkOrder(orderRequest)(orderResponse)
+            if(orderResponse.Status = "Success") {
+                //FIND HOLDINGS FOR CUSTOMER IN DB
+            }else {
+                response.Holdings = void
+            }
+            response.Status = orderResponse.Status
+            response.ErrorMessage = orderResponse.ErrorMessage
         }]
         
         [ checkLogin(request)(response) {

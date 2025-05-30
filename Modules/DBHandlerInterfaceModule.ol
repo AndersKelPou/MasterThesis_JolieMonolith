@@ -31,6 +31,10 @@ type clientRequest: void {
     ClientId: string
 }
 
+type clientResponse: void {
+    Client: ClientData
+}
+
 type clientTierResponse: void {
     ClientTier: Tier
 }
@@ -52,6 +56,7 @@ interface DBHandlerInterface {
         addClient( AddClientRequest )( void ),
         addClientCustomer( AddClientCustomerRequest )( void ),
         getClientId( getClientIdRequest )( undefined ),
+        getClientFromId( clientRequest )( clientResponse )
         getAllClients( void )( undefined ),
         getClientTier( clientRequest )( clientTierResponse ),
         checkLogin( loginRequest )( loginResponse ),

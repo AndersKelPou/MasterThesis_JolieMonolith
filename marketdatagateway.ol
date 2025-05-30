@@ -40,7 +40,6 @@ service hedgeservice {
         println@Console("MarketDataGateway Running")()
     }
 
-
     main {
         [ publishInitialPrice(request)(response){
             count = 0
