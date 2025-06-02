@@ -12,7 +12,6 @@ type TransactionData: void {
     size: int
     price: double
     spreadPrice: double
-    dateTime: string //DateTime documentation: https://docs.jolie-lang.org/v1.10.x/language-tools-and-standard-library/standard-library-api/time.html#getCurrentDateTime
     succeeded: bool
 }
 

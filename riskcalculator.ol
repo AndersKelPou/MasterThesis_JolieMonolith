@@ -71,7 +71,7 @@ service riskcalculator {
                         clientInventory = item.Size
                     }
                 }
-                if(clientInventory > request.Size) {
+                if(clientInventory >= request.Size) {
                     //Figuring out if we should hedge
                     getDanskeBankHoldings@DBHandlerPort()(holdingsResponse)
                     bankInventory = 0

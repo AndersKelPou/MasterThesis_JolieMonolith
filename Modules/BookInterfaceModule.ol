@@ -21,10 +21,13 @@ type hedgeOrderRequest: void {
     Broker: string
 }
 
+type orderResponse: void {
+    Message: string
+}
+
 interface BookInterface {
-    OneWay:
-        bookOrder(bookOrderRequest),
-        hedgeOrder(hedgeOrderRequest)
     RequestResponse:
+        hedgeOrder(hedgeOrderRequest)(orderResponse),
+        bookOrder(bookOrderRequest)(orderResponse),
         shutdown( void )( void )
 }

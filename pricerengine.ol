@@ -34,7 +34,7 @@ service pricerengine {
     main {
         [ updatePrice(request)] {
             for( i=0, i<#global.Prices, i++) {
-                if(request.InstrumentId = global.Prices[i].InstrumentId) {
+                if(request.InstrumentId == global.Prices[i].InstrumentId) {
                     global.Prices[i].Price = request.Price
                     handlePriceUpdate@clientAPIPort(request)
                 }
@@ -51,6 +51,16 @@ service pricerengine {
         }]
 
         [ publishPrice(request)(response) {
+            if (#global.Prices < 1) {
+                scope (MarketDataScope) {
+                    install (IOException => println@Console("Could not connect to market data gateway")());
+                    publishInitialPrice@MarketDataGatewayPort(config.TradingOptions) ( res );
+                    for( i=0, i<#res.Stocks, i++) {
+                        global.Prices[i].InstrumentId = res.Stocks[i].InstrumentId
+                        global.Prices[i].Price = res.Stocks[i].Price
+                    }
+                }
+            }
             response.Price = 0
             for(item in global.Prices) {
                 if(item.InstrumentId == request.InstrumentId) {

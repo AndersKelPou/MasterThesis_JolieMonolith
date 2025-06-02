@@ -13,7 +13,7 @@ type AddClientCustomerRequest: void {
 }
 
 type getClientIdRequest: void {
-    name: string
+    Name: string
 }
 
 type loginRequest: void {
@@ -35,6 +35,10 @@ type clientResponse: void {
     Client: ClientData
 }
 
+type clientIdResponse: void {
+    ClientId: string
+}
+
 type clientTierResponse: void {
     ClientTier: Tier
 }
@@ -51,17 +55,34 @@ type InstrumentTargetResponse: void {
     Target: int
 }
 
+type addTransactionRequest: void {
+    TransactionId: string
+    BuyerId: string
+    SellerId: string
+    Succeeded: bool
+    InstrumentId: string
+    Size: int
+    Price: double
+    SpreadPrice: double
+}
+
+type TransactionResponse: void {
+    Message: string
+}
+
 interface DBHandlerInterface {
     RequestResponse:
         addClient( AddClientRequest )( void ),
         addClientCustomer( AddClientCustomerRequest )( void ),
-        getClientId( getClientIdRequest )( undefined ),
-        getClientFromId( clientRequest )( clientResponse )
+        getClientId( getClientIdRequest )( clientIdResponse ),
+        getClientFromId( clientRequest )( clientResponse ),
         getAllClients( void )( undefined ),
         getClientTier( clientRequest )( clientTierResponse ),
         checkLogin( loginRequest )( loginResponse ),
         getClientHoldings( clientRequest )( holdingsResponse ),
         getDanskeBankHoldings( void )( holdingsResponse ),
+        getDanskeBankId( void )( clientIdResponse ),
         getInstrumentTarget( InstrumentTargetRequest )( InstrumentTargetResponse ),
+        addTransaction(addTransactionRequest)(TransactionResponse),
         shutdown( void )( void )
 }

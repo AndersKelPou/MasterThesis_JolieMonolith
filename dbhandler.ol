@@ -32,7 +32,7 @@ service Dbhandler {
             .driver = "hsqldb_embedded"
         };
         connect@Database(connectionInfo)();
-        println@Console("connected")();
+        println@Console("DBHandler Running")();
 
         // create table if it does not exist
         getRandomUUID@StringUtils()(uuid1)
@@ -47,6 +47,7 @@ service Dbhandler {
         internalBalance = 1000000.0
         internalHoldingSize = 100
         initialTarget = 3
+        global.DanskeBankName = "Danske_Bank"
 
         scope (createClientTable) {
             install (SQLException => println@Console("Client table already exists")());
@@ -76,7 +77,7 @@ service Dbhandler {
             update@Database(
                 "insert into Clients (clientid, name, balance, tier) values (:clientid, :name, :balance, :tier)" {
                     .clientid = danskebankid,
-                    .name = "Danske_Bank",
+                    .name = global.DanskeBankName,
                     .balance = internalBalance,
                     .tier = internalTier
                 }
@@ -168,15 +169,16 @@ service Dbhandler {
         scope (createTransactionsTable) {
             install (SQLException => println@Console("Transactions table already exists")());
             update@Database(
-                "create table Transactions(transactionid varchar(255) not null, " +
+                "create table Transactions(id integer generated always as identity, " +
+                "transactionid varchar(255) not null, " +
                 "buyerid varchar(255) not null, " +
                 "sellerid varchar(255) not null, " +
                 "instrumentid varchar(255) not null, " +
                 "size int not null, " +
                 "price decimal(100,2) not null, " +
-                "datetime date not null, " +
+                "spreadprice decimal(100,2) not null, " +
                 "succeeded boolean not null, " +
-                "primary key(transactionid))"
+                "primary key(id))"
             )(ret)
         }
         scope (createTargetPositionsTable) {
@@ -202,10 +204,14 @@ service Dbhandler {
         [ getClientId( request )( response ) {
             query@Database(
                 "select clientId from Clients where name=:name" {
-                    .name = request.name
+                    .name = request.Name
                 }
             )(sqlResponse);
-            response -> sqlResponse.row.CLIENTID
+            if(#sqlResponse.row < 1) {
+                response.ClientId = ""
+            }else {
+                response.ClientId -> sqlResponse.row.CLIENTID
+            }
         } ]
 
         [ getAllClients( )( response ) {
@@ -218,7 +224,7 @@ service Dbhandler {
         [ getClientFromId( request )( response ) {
             query@Database(
                 "select * from Clients where clientId=:clientId" {
-                    .clientId = request.ClientId
+                    .clientId = string(request.ClientId)
                 }
             )(sqlResponse);
             if(#sqlResponse.row < 1) {
@@ -273,7 +279,7 @@ service Dbhandler {
         [getClientTier(request)(response){
             query@Database(
                 "select tier from Clients where clientId=:clientId" {
-                    .clientId = request.ClientId
+                    .clientId = string(request.ClientId)
                 }
             )(sqlResponse)
             if(#sqlResponse.row < 1) {
@@ -286,7 +292,7 @@ service Dbhandler {
         [getClientHoldings(request)(response){
             query@Database(
                 "select * from Holdings where clientid=:clientid" {
-                    .clientid = request.ClientId
+                    .clientid = string(request.ClientId)
                 }
             )(sqlResponse)
             if(#sqlResponse.row < 1) {
@@ -303,7 +309,7 @@ service Dbhandler {
         [getDanskeBankHoldings()(response){
             query@Database(
                 "select * from Holdings where clientId=:clientId" {
-                    .clientId = danskebankid
+                    .clientId = string(danskebankid)
                 }
             )(sqlResponse)
             if(#sqlResponse.row < 1) {
@@ -317,6 +323,15 @@ service Dbhandler {
             }
         }]
 
+        [getDanskeBankId()(response) {
+            query@Database(
+                "select clientId from Clients where name=:name" {
+                    .name = global.DanskeBankName
+                }
+            )(sqlResponse)
+            response.ClientId = sqlResponse.row.CLIENTID
+        }]
+
         [getInstrumentTarget(request)(response){
             query@Database(
                 "select * from TargetPositions where instrumentId=:instrumentId" {
@@ -328,6 +343,89 @@ service Dbhandler {
             }else {
                 response.Target = sqlResponse.row.TARGET
             }
+        }]
+
+        [addTransaction(request)(response) {
+            update@Database(
+                "insert into Transactions(transactionid, buyerid, sellerid, instrumentid, size, price, spreadprice, succeeded) values (:transactionid, :buyerid, :sellerid, :instrumentid, :size, :price, :spreadprice, :succeeded)" {
+                    .transactionid = string(request.TransactionId)
+                    .buyerid = string(request.BuyerId)
+                    .sellerid = string(request.SellerId)
+                    .instrumentid = string(request.InstrumentId)
+                    .size = int(request.Size)
+                    .price = double(request.Price)
+                    .spreadprice = double(request.SpreadPrice)
+                    .succeeded = bool(request.Succeeded)
+                }
+            )(res)
+
+            if(request.Succeeded) {
+                //Update Buyer Holdings
+                query@Database(
+                    "select * from Holdings where clientId=:clientId and instrumentId=:instrumentId" {
+                        .clientId = string(request.BuyerId)
+                        .instrumentId = string(request.InstrumentId)
+                    }
+                )(sqlResponse1)
+                if(#sqlResponse1.row < 1) {
+                    update@Database(
+                        "insert into Holdings(clientid, instrumentid, size) values (:clientid, :instrumentid, :size)" {
+                            .clientid = string(request.BuyerId)
+                            .instrumentid = string(request.InstrumentId)
+                            .size = int(request.Size)
+                        }
+                    )(res)
+                }else {
+                    update@Database(
+                        "update Holdings set size=size+:size where clientid=:clientid and instrumentid=:instrumentid" {
+                            .size = int(request.Size)
+                            .clientid = string(request.BuyerId)
+                            .instrumentid = string(request.InstrumentId)
+                        }
+                    )(res)
+                }
+
+                //Update Seller Holdings
+                query@Database(
+                    "select * from Holdings where clientId=:clientId and instrumentId=:instrumentId" {
+                        .clientId = string(request.SellerId)
+                        .instrumentId = string(request.InstrumentId)
+                    }
+                )(sqlResponse2)
+                if(#sqlResponse2.row < 1) {
+                    update@Database(
+                        "insert into Holdings(clientid, instrumentid, size) values (:clientid, :instrumentid, :size)" {
+                            .clientid = string(request.SellerId)
+                            .instrumentid = string(request.InstrumentId)
+                            .size = 0 - int(request.Size)
+                        }
+                    )(res)
+                }else {
+                    update@Database(
+                        "update Holdings set size=size-:size where clientid=:clientid and instrumentid=:instrumentid" {
+                            .size = int(request.Size)
+                            .clientid = string(request.SellerId)
+                            .instrumentid = string(request.InstrumentId)
+                        }
+                    )(res)
+                }
+
+                //Update Client Balances
+                update@Database(
+                    "update Clients set balance=balance-:cost where clientid=:clientid" {
+                        .cost = double(request.Size * (request.Price + request.SpreadPrice))
+                        .clientid = string(request.BuyerId)
+                    }
+                )(res)
+                update@Database(
+                    "update Clients set balance=balance+:cost where clientid=:clientid" {
+                        .cost = double(request.Size * (request.Price + request.SpreadPrice))
+                        .clientid = string(request.SellerId)
+                    }
+                )(res)
+            }
+
+            response.Message = "OK"
         }]
 
         [ shutdown()() ]{

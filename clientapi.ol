@@ -65,11 +65,22 @@ service clientapi {
                 orderRequest.SpreadPrice = request.Price - (request.Price * (1.0 / (1.0 + spreadPercent)))
             }else {
                 orderRequest.Price = request.Price * (1.0 / (1.0 - spreadPercent))
-                orderRequest.SpreadPrice = (request.Price * (1.0 / (1.0 + spreadPercent))) - request.Price
+                orderRequest.SpreadPrice = (request.Price * (1.0 / (1.0 - spreadPercent))) - request.Price
             }
-            checkOrder(orderRequest)(orderResponse)
-            if(orderResponse.Status = "Success") {
-                //FIND HOLDINGS FOR CUSTOMER IN DB
+            checkOrder@riskCalculatorPort(orderRequest)(orderResponse)
+            if(orderResponse.Status == "Success") {
+                clientRequest.ClientId = request.ClientId
+                getClientHoldings@DBHandlerPort(clientRequest)(clientHoldingsResponse)
+                getClientFromId@DBHandlerPort(clientRequest)(clientDataResponse)
+                for( i=0, i<#clientHoldingsResponse.Holdings, i++) {
+                    response.Holdings[i].ClientId = clientHoldingsResponse.Holdings[i].ClientId
+                    response.Holdings[i].InstrumentId = clientHoldingsResponse.Holdings[i].InstrumentId
+                    response.Holdings[i].Size = clientHoldingsResponse.Holdings[i].Size
+                }
+                response.Client.ClientId = clientDataResponse.Client.ClientId
+                response.Client.Name = clientDataResponse.Client.Name
+                response.Client.Tier = clientDataResponse.Client.Tier
+                response.Client.Balance = clientDataResponse.Client.Balance
             }else {
                 response.Holdings = void
             }

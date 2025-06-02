@@ -68,18 +68,18 @@ service executionhandler {
                             response.ErrorMessage = "Ordered could not be hedged"
                         }else {
                             transaction.Broker = hedgeResponse.Broker
-                            hedgeOrder@BookPort(transaction)
+                            hedgeOrder@BookPort(transaction)(res)
                             response.Status = "Success"
                             response.ErrorMessage = ""
                         }
                     }else {
-                        bookOrder@BookPort(transaction)
+                        bookOrder@BookPort(transaction)(res)
                         response.Status = "Success"
                         response.ErrorMessage = ""
                     }
                 }else {
                     response.Status = "Canceled"
-                    response.ErrorMessage = "Ordered cancelled due to price change of instrument"
+                    response.ErrorMessage = "Order cancelled due to price change of instrument"
                 }
             }
         }]

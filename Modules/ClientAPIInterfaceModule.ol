@@ -44,11 +44,18 @@ type stockOptionRequest: void {
     ClientId: string
 }
 
+type handleOrderResponse: void {
+    Status: string
+    ErrorMessage: string
+    Client[0,1]: ClientData
+    Holdings[0,*]: HoldingData
+}
+
 interface ClientAPIInterface {
     OneWay:
         handlePriceUpdate( Stock )
     RequestResponse:
-        handleOrder(handleOrderRequest)(undefined),
+        handleOrder(handleOrderRequest)(handleOrderResponse),
         checkLogin(loginRequest)(loginResponse),
         getStockOptions(stockOptionRequest)(stockOptions),
         shutdown( void )( void )
