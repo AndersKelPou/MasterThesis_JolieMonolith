@@ -7,7 +7,7 @@ from .Modules.ExternalBrokerSims.JPMorganInterfaceModule import JPMorganInterfac
 
 include "console.iol"
 
-service hedgeservice {
+service marketdatagateway {
     execution: concurrent
 
     inputPort marketDataGatewayPort {

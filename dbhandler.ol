@@ -5,7 +5,7 @@ include "database.iol"
 include "string_utils.iol"
 include "file.iol"
 
-service Dbhandler {
+service dbhandler {
     execution: concurrent
 
     inputPort DBHandlerPort {
